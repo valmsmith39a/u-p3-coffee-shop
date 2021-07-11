@@ -4,11 +4,9 @@ from functools import wraps
 from jose import jwt
 from urllib.request import urlopen
 
-
-# TODO: Reinstate: AUTH0_DOMAIN = 'udacity-fsnd.auth0.com'
-AUTH0_DOMAIN = 'fsnd.auth0.com'
+AUTH0_DOMAIN = 'dev-waoix1p9.us.auth0.com'
 ALGORITHMS = ['RS256']
-API_AUDIENCE = 'dev'
+API_AUDIENCE = 'coffee'
 
 ## AuthError Exception
 '''
@@ -23,7 +21,7 @@ class AuthError(Exception):
 ## Auth Header
 
 '''
-@TODO implement get_token_auth_header() method
+@TODO: DONE: implement get_token_auth_header() method
     it should attempt to get the header from the request
         it should raise an AuthError if no header is present
     it should attempt to split bearer and the token
@@ -32,7 +30,7 @@ class AuthError(Exception):
 '''
 def get_token_auth_header():   
 
-    if 'Authorization' not in request.headers:
+    if "Authorization" not in request.headers:
         # 401 unauthorized 
         raise AuthError({
             "code": "invalid_header",
@@ -57,7 +55,7 @@ def get_token_auth_header():
     return header_parts[1]
 
 '''
-@TODO implement check_permissions(permission, payload) method
+@TODO: DONE: implement check_permissions(permission, payload) method
     @INPUTS
         permission: string permission (i.e. 'post:drink')
         payload: decoded jwt payload
@@ -68,10 +66,22 @@ def get_token_auth_header():
     return true otherwise
 '''
 def check_permissions(permission, payload):
+    if "permissions" not in payload: 
+        raise AuthError({
+            "code": "invalid_token",
+            "description": "Permissions field not found"
+        })
+
+    if permission not in payload["permissions"]:
+         raise AuthError({
+            "code": "invalid_token",
+            "description": "User permission not found in permissions"
+        }, 401)
+
     raise Exception('Not Implemented')
 
 '''
-@TODO implement verify_decode_jwt(token) method
+@TODO: DONE: implement verify_decode_jwt(token) method
     @INPUTS
         token: a json web token (string)
 
@@ -84,14 +94,20 @@ def check_permissions(permission, payload):
     !!NOTE urlopen has a common certificate error described here: https://stackoverflow.com/questions/50236117/scraping-ssl-certificate-verify-failed-error-for-http-en-wikipedia-org
 '''
 def verify_decode_jwt(token):
-    # Get public key from Auth0
+
+    # Get public key and make sure the JWT was signed using the corresponding private key
+
+    # Public key from Auth0
     jsonurl = urlopen(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
     # Returns an array of key objects and each key object includes a key id (kid)
     jwks = json.loads(jsonurl.read()) # Returns and 
     # Get header from token. Ex {'typ': 'JWT', 'alg': 'RS256', 'kid': 'some key id'}
     unverified_header = jwt.get_unverified_header(token)
+    
     # Find a key object with key id that matches the key id in our header 
+
     rsa_key = {}
+
     if 'kid' not in unverified_header:
         raise AuthError({
             "code": "invalid_header",
@@ -108,16 +124,41 @@ def verify_decode_jwt(token):
                 "e": key["e"]
             }
 
-    raise Exception('Not Implemented')
+    if rsa_key:
+        try:
+            # Validate JWT using the key 
+            payload = jwt.decode(
+                token,
+                rsa_key,
+                algorithms=ALGORITHMS,
+                audience=API_AUDIENCE,
+                issuer="https://" + AUTH0_DOMAIN + "/"
+            )
 
-token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik56Z3lSVFZEUmpKQ1FrUkJSRGN3TjBReFJUQTFPVUl5UlRORk9EQXhPVGMwTmpjNU9USkVPQSJ9.eyJpc3MiOiJodHRwczovL2ZzbmQuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDVkMDNkM2U2NzI2YjhmMGNiNGJmNzFjOSIsImF1ZCI6ImltYWdlIiwiaWF0IjoxNTYwNTU2MTc0LCJleHAiOjE1NjA1NjMzNzQsImF6cCI6ImtpNEI2alprdUpkODdicEIyTXc4emRrajFsM29mcHpqIiwic2NvcGUiOiIiLCJwZXJtaXNzaW9ucyI6WyJnZXQ6aW1hZ2VzIiwicG9zdDppbWFnZXMiXX0.ENxNT1lo_sX9rpgmGJmiu14lugmYXqb8siJwC1nPuGSb_ycK02KyS5IkA-YkhySMBcDD5IJfawPkJNmJPtUAB1wYVP8hlNsBuvLjtYxzH_VHNeXzVXWQvM7RiuPwrmWJmJN2onmZPh3bjiUZxvyAp0Yp0Rvm54SsiDjO_Dj1Qx-Az_Zjo-mY2ECfFgAo0ifnqDMIgE5YDZ3uOzMni4oEU5Ok-TrQOSwyfJyUC1KQ7ubQ-Bnbh-0Aii9UK9R4JBH7iIMva8_edQkgR4MuRXatYhsqvHsxQ2Iv5rjMmTAmjknsYWE5VYrzafRGVigbPD9A6ELEnyjADBQ9vMtSdPQe2w"
-verify_decode_jwt(token)
+            return payload
 
-'''
-TESTING
+        except jwt.ExpiredSignatureError:
+            raise AuthError({
+                "code": "token_expired",
+                "descriptions": "Token expired."
+            }, 401)
 
-'''
+        except jwt.JWTClaimsError:
+            raise AuthError({
+                "code": "invalid_claims",
+                "descriptions": "Incorrect claims. Please check the audience and issuer."
+            })
+        
+        except Exception:
+            raise AuthError({
+                "code": "invalid_header",
+                "description": "Unable to parse authentication token"
+            })
 
+    raise AuthError({
+        "code": "invalid_header",
+        "description": "Unable to find the appropriate key."
+    }, 400)
 
 '''
 @TODO implement @requires_auth(permission) decorator method
