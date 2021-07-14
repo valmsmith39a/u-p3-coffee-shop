@@ -41,7 +41,7 @@ def get_drinks():
 
 
 """
-@TODO implement endpoint
+@TODO: DONE: implement endpoint
     GET /drinks-detail
         it should require the 'get:drinks-detail' permission
         it should contain the drink.long() data representation
@@ -70,6 +70,7 @@ def get_drinks_details(jwt):
         or appropriate status code indicating reason for failure
 """
 
+
 @app.route("/drinks", methods=["POST"])
 @requires_auth("post:drinks")
 def create_drink(jwt):
@@ -78,12 +79,12 @@ def create_drink(jwt):
         title = body.get("title", None)
         recipe = json.dumps(body.get("recipe", None))
 
-        if title is None or recipe is None: 
+        if title is None or recipe is None:
             abort(400)
-        
+
         new_drink = Drink(title=title, recipe=recipe)
         new_drink.insert()
-        
+
         drinks = Drink.query.all()
 
         return jsonify({
@@ -96,7 +97,7 @@ def create_drink(jwt):
 
 
 """
-@TODO implement endpoint
+@TODO:DONE: implement endpoint
     PATCH /drinks/<id>
         where <id> is the existing model id
         it should respond with a 404 error if <id> is not found
@@ -107,6 +108,33 @@ def create_drink(jwt):
         or appropriate status code indicating reason for failure
 """
 
+@app.route("/drinks/<int:id>", methods=["PATCH"])
+# @requires_auth("patch:drinks")
+def update_drink(id):
+    try:
+        if id is None:
+            abort(404)
+
+        drink = Drink.query.filter(Drink.id == id).one_or_none()
+        new_drink_data = request.get_json()
+        title = json.dumps(new_drink_data["title"])
+        recipe = json.dumps(new_drink_data["recipe"])
+
+        if "title" in new_drink_data:
+            drink.title = title
+
+        if "recipe" in new_drink_data:
+            drink.recipe = recipe 
+        
+        drink.update()
+
+        return jsonify({
+            "success": True,
+            "drink": [drink.long()]
+        })
+
+    except:
+        abort(422)
 
 """
 @TODO implement endpoint
@@ -118,21 +146,36 @@ def create_drink(jwt):
     returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
         or appropriate status code indicating reason for failure
 """
+@app.route("/drinks/<int:id>", methods=["DELETE"])
+def delete_drink(id):
+    try:
+        drink = Drink.query.filter(Drink.id == id).one_or_none()
+        
+        if drink is None:
+            abort(422)
+
+        drink.delete()
+
+        return jsonify({
+            "success": True,
+            "delete": id
+        })
+
+    except:
+        abort(422)
 
 
 # Error Handling
 """
 Example error handling for unprocessable entity
 """
-
-
 @app.errorhandler(422)
 def unprocessable(error):
     return jsonify({"success": False, "error": 422, "message": "unprocessable"}), 422
 
 
 """
-@TODO implement error handlers using the @app.errorhandler(error) decorator
+@TODO: DONE: implement error handlers using the @app.errorhandler(error) decorator
     each error handler should return (with approprate messages):
              jsonify({
                     "success": False,
@@ -141,14 +184,23 @@ def unprocessable(error):
                     }), 404
 
 """
-
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({"success": False, "error": 400, "message": "bad request"}), 400
+    
 """
-@TODO implement error handler for 404
+@TODO: DONE: implement error handler for 404
     error handler should conform to general task above
 """
-
+@app.errorhandler(404)
+def file_not_found(error):
+    return jsonify({"success": False, "error": 404, "message": "file not found"}), 404
 
 """
-@TODO implement error handler for AuthError
+@TODO: DONE: implement error handler for AuthError
     error handler should conform to general task above
 """
+class AuthError(Exception):
+    def __init__(self, error, status_code):
+        self.error = error
+        self.status_code = status_code
