@@ -108,7 +108,7 @@ def create_drink(jwt):
 
 @app.route("/drinks/<int:id>", methods=["PATCH"])
 @requires_auth("patch:drinks")
-def update_drink(id):
+def update_drink(jwt, id):
     try:
         if id is None:
             abort(404)
@@ -146,7 +146,7 @@ def update_drink(id):
 """
 @app.route("/drinks/<int:id>", methods=["DELETE"])
 @requires_auth("delete:drinks")
-def delete_drink(id):
+def delete_drink(jwt, id):
     try:
         drink = Drink.query.filter(Drink.id == id).one_or_none()
         
