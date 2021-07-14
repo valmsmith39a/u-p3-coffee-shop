@@ -48,8 +48,6 @@ def get_drinks():
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 """
-
-
 @app.route("/drinks-details")
 @requires_auth("get:drinks-detail")
 def get_drinks_details(jwt):
@@ -109,7 +107,7 @@ def create_drink(jwt):
 """
 
 @app.route("/drinks/<int:id>", methods=["PATCH"])
-# @requires_auth("patch:drinks")
+@requires_auth("patch:drinks")
 def update_drink(id):
     try:
         if id is None:
@@ -147,6 +145,7 @@ def update_drink(id):
         or appropriate status code indicating reason for failure
 """
 @app.route("/drinks/<int:id>", methods=["DELETE"])
+@requires_auth("delete:drinks")
 def delete_drink(id):
     try:
         drink = Drink.query.filter(Drink.id == id).one_or_none()
