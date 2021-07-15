@@ -75,9 +75,7 @@ def check_permissions(permission, payload):
         raise AuthError(
             {"code": "invalid_token", "description": "Permissions field not found"}
         )
-
     permissions = [permission.strip() for permission in payload["permissions"]]
-    
     if permission not in permissions:
         raise AuthError(
             {
@@ -86,7 +84,6 @@ def check_permissions(permission, payload):
             },
             401,
         )
-
     return True
 
 
@@ -134,7 +131,6 @@ def verify_decode_jwt(token):
                 "n": key["n"],
                 "e": key["e"],
             }
-
     if rsa_key:
         try:
             # Validate JWT using the key
